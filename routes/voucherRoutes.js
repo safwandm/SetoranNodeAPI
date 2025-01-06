@@ -97,24 +97,30 @@ router.get("/filtered", (req, res) => {
         params.push(`%${search}%`);
       }
 
-      buildAndRunQuery();
+      handleOtherFilters();
     });
     return;
   }
 
-  if (status) {
-    query += " AND status_voucher = ?";
-    params.push(status);
-  }
+  handleOtherFilters();
 
-  if (start) {
-    query += " AND tanggal_mulai <= ?";
-    params.push(start);
-  }
+  function handleOtherFilters() {
+    if (status) {
+      query += " AND status_voucher = ?";
+      params.push(status);
+    }
 
-  if (end) {
-    query += " AND tanggal_akhir >= ?";
-    params.push(end);
+    if (start) {
+      query += " AND tanggal_mulai <= ?";
+      params.push(start);
+    }
+
+    if (end) {
+      query += " AND tanggal_akhir >= ?";
+      params.push(end);
+    }
+
+    buildAndRunQuery();
   }
 
   function buildAndRunQuery() {
@@ -123,9 +129,8 @@ router.get("/filtered", (req, res) => {
       res.json(rows);
     });
   }
-
-  buildAndRunQuery();
 });
+
 
 router.get("/kode/:kode_voucher", (req, res) => {
   const { kode_voucher } = req.params;
