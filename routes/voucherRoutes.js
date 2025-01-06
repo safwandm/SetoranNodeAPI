@@ -147,4 +147,19 @@ router.get("/kode/:kode_voucher", (req, res) => {
   });
 });
 
+router.get("/:id", (req, res) => {
+  const { id } = req.params;
+
+  const query = "SELECT * FROM vouchers WHERE id_voucher = ?";
+  db.get(query, [id], (err, row) => {
+    if (err) return res.status(500).json({ error: "Database query error." });
+
+    if (!row) {
+      return res.status(404).json({ error: "Voucher not found." });
+    }
+
+    res.json(row);
+  });
+});
+
 module.exports = router;
