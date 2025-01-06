@@ -2,7 +2,6 @@ const express = require('express');
 const db = require('../database');
 const router = express.Router();
 
-// === GET ALL VOUCHERS ===
 router.get('/', (req, res) => {
   const query = 'SELECT * FROM vouchers';
   db.all(query, [], (err, rows) => {
@@ -13,9 +12,8 @@ router.get('/', (req, res) => {
   });
 });
 
-// === GET ACTIVE VOUCHERS ===
 router.get('/active', (req, res) => {
-  const currentDate = new Date().toISOString().split('T')[0]; // Get current date
+  const currentDate = new Date().toISOString().split('T')[0]; 
   const query = `
     SELECT * FROM vouchers
     WHERE status_voucher = 'aktif'
@@ -30,7 +28,6 @@ router.get('/active', (req, res) => {
   });
 });
 
-// === CREATE A NEW VOUCHER ===
 router.post('/', (req, res) => {
   const { nama_voucher, status_voucher, tanggal_mulai, tanggal_akhir, persen_voucher, kode_voucher } = req.body;
   const query = `
@@ -45,7 +42,6 @@ router.post('/', (req, res) => {
   });
 });
 
-// === UPDATE VOUCHER ===
 router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { nama_voucher, status_voucher, tanggal_mulai, tanggal_akhir, persen_voucher, kode_voucher } = req.body;
@@ -65,7 +61,6 @@ router.put('/:id', (req, res) => {
   });
 });
 
-// === DELETE VOUCHER ===
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM vouchers WHERE id_voucher = ?';
@@ -78,6 +73,72 @@ router.delete('/:id', (req, res) => {
       return res.status(404).json({ message: 'Voucher not found' });
     }
     res.json({ message: 'Voucher deleted successfully' });
+  });
+});
+
+router.get("/filtered", (req, res) => {
+  const { search, status, start, end } = req.query;
+
+  let query = "SELECT * FROM vouchers WHERE 1=1";
+  const params = [];
+
+  if (search) {
+    const columnsQuery = `PRAGMA table_info(vouchers)`;
+    db.all(columnsQuery, [], (err, columns) => {
+      if (err) return res.status(500).json({ error: "Error retrieving table info." });
+
+      const searchableColumns = columns.map((col) => col.name);
+      const searchConditions = searchableColumns
+        .map((col) => `${col} LIKE ?`)
+        .join(" OR ");
+      query += ` AND (${searchConditions})`;
+
+      for (const col of searchableColumns) {
+        params.push(`%${search}%`);
+      }
+
+      buildAndRunQuery();
+    });
+    return;
+  }
+
+  if (status) {
+    query += " AND status_voucher = ?";
+    params.push(status);
+  }
+
+  if (start) {
+    query += " AND tanggal_mulai <= ?";
+    params.push(start);
+  }
+
+  if (end) {
+    query += " AND tanggal_akhir >= ?";
+    params.push(end);
+  }
+
+  function buildAndRunQuery() {
+    db.all(query, params, (err, rows) => {
+      if (err) return res.status(500).json({ error: "Database query error." });
+      res.json(rows);
+    });
+  }
+
+  buildAndRunQuery();
+});
+
+router.get("/kode/:kode_voucher", (req, res) => {
+  const { kode_voucher } = req.params;
+
+  const query = "SELECT * FROM vouchers WHERE kode_voucher = ?";
+  db.get(query, [kode_voucher], (err, row) => {
+    if (err) return res.status(500).json({ error: "Database query error." });
+
+    if (!row) {
+      return res.status(404).json({ error: "Voucher not found." });
+    }
+
+    res.json(row);
   });
 });
 
